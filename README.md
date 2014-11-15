@@ -3,6 +3,8 @@ dbx
 
 A library that provides database extensions for Go. These tools are intended to work with both sql and sqlx.
 
+[![wercker status](https://app.wercker.com/status/b4812ae58dbd3745ade9bd97647e90c9/m "wercker status")](https://app.wercker.com/project/bykey/b4812ae58dbd3745ade9bd97647e90c9)
+
 Overview
 ========
 Nogo provides easy to use role-based access controls for servers as well as access control lists (ACLs) support for defining access to resources.

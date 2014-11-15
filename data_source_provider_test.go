@@ -15,6 +15,7 @@
 package dbx
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -42,7 +43,8 @@ func TestSchemaBasedProvider(t *testing.T) {
 	assert.Nil(t, err)
 	row := tx.QueryRow("SHOW search_path")
 	val := ""
-	row.Scan(&val)
+	err = row.Scan(&val)
+	fmt.Printf("Error: %v", err)
 	assert.Equal(t, schema, val)
 
 	// verify the queries were loaded
