@@ -51,7 +51,10 @@ func (this *SchemaScopedProvider) Begin() (*sqlx.Tx, error) {
 	if err != nil {
 		return nil, err
 	}
-	tx.Exec(fmt.Sprintf("SET search_path TO %v", this.schema))
+	_, err = tx.Exec(fmt.Sprintf("SET search_path TO %v", this.schema))
+	if err != nil {
+		return nil, err
+	}
 	return tx, nil
 }
 
