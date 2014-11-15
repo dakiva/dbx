@@ -1,4 +1,8 @@
 box: wercker/golang
+
+services:
+  - wercker/postgresql
+
 # Build definition
 build:
   # The steps that will be executed on build
@@ -25,4 +29,5 @@ build:
     - script:
         name: go test
         code: |
+          export POSTGRES_DSN="user=$WERCKER_POSTGRESQL_USERNAME password=WERCKER_POSTGRESQL_PASSWORD host=WERCKER_POSTGRESQL_HOST port=WERCKER_POSTGRESQL_PORT dbname=WERCKER_POSTGRESQL_DATABASE"
           go test ./...
