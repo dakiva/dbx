@@ -16,6 +16,7 @@ build:
     - script:
         name: go get
         code: |
+         go get github.com/lib/pq
          go get ./...
 
     # Build the project
