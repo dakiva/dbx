@@ -1,0 +1,14 @@
+{
+    "Query1": {
+        "query": "query1",
+        "description": "description1"
+    },
+    "Query2": {
+        "query": "query2",
+        "description": "description2"
+    },
+    "Query2": {
+        "query": "duplicate",
+        "description": "duplicate description"
+    }
+}
