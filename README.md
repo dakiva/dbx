@@ -28,6 +28,7 @@ Getting Started
 ===============
 This library has support for externalizing queries into JSON files.
 
+```
 const (
       QueryA QueryIdentifier = "QueryA"
       ...
@@ -36,6 +37,7 @@ const (
 queryMap := loadNamedQueries("path/to/querfile.json", "path/to/queryfile2.json")
 db *DB = ...
 db.Exec(queryMap[QueryA], ...)
+```
 
 Additionally, an abstraction over DB is also provided allowing for use cases such as preparing connections - for casses such as setting the search_path when using Postgres schemas. The abstraction supports finding named queries using the mechanism above.
 
