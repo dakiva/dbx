@@ -15,7 +15,6 @@
 package dbx
 
 import (
-	"fmt"
 	"os"
 	"testing"
 
@@ -30,7 +29,7 @@ const (
 func TestSchemaBasedProvider(t *testing.T) {
 	// given
 	pgdsn := os.Getenv(postgresDsn)
-	schema := "test"
+	schema := "public"
 
 	// when
 	provider, err := NewSchemaScopedProvider(pgdsn, schema, "test_queries.json")
@@ -43,8 +42,7 @@ func TestSchemaBasedProvider(t *testing.T) {
 	assert.Nil(t, err)
 	row := tx.QueryRow("SHOW search_path")
 	val := ""
-	err = row.Scan(&val)
-	fmt.Printf("Error: %v", err)
+	row.Scan(&val)
 	assert.Equal(t, schema, val)
 
 	// verify the queries were loaded
