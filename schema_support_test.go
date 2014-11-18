@@ -33,6 +33,7 @@ const (
 func TestSchemaCreation(t *testing.T) {
 	// given
 	pgdsn := os.Getenv(postgresDsn)
+	password := "pwd"
 	// create the schema
 	schema := fmt.Sprintf("schema%v", time.Now().Unix())
 	db, err := sqlx.Connect(pgType, pgdsn)
@@ -41,13 +42,13 @@ func TestSchemaCreation(t *testing.T) {
 	defer DropSchema(schema, db)
 
 	// when
-	err = CreateSchema(schema, db)
+	err = CreateSchema(schema, password, db)
 
 	// then
 	assert.Nil(t, err)
 
 	// verify the search path using the new Role
-	db2, err := sqlx.Connect(pgType, CreateDsnForRole(pgdsn, schema, ""))
+	db2, err := sqlx.Connect(pgType, CreateDsnForRole(pgdsn, schema, password))
 	assert.Nil(t, err)
 	defer db2.Close()
 	row := db2.QueryRow("SHOW search_path")

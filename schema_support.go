@@ -23,11 +23,11 @@ import (
 )
 
 // Creates a new Postgres schema along with a specific role as the owner.
-func CreateSchema(schema string, db *sqlx.DB) error {
+func CreateSchema(schema, password string, db *sqlx.DB) error {
 	if schema == "" {
 		return errors.New("Empty schema name specified")
 	}
-	_, err := db.Exec(fmt.Sprintf("CREATE ROLE %v WITH LOGIN", schema))
+	_, err := db.Exec(fmt.Sprintf("CREATE ROLE %v WITH LOGIN ENCRYPTED PASSWORD '%v'", schema, password))
 	if err != nil {
 		return err
 	}
