@@ -47,7 +47,7 @@ func TestSchemaCreation(t *testing.T) {
 	assert.Nil(t, err)
 
 	// verify the search path using the new Role
-	db2, err := sqlx.Connect(pgType, CreateDsnForRole(pgdsn, schema))
+	db2, err := sqlx.Connect(pgType, CreateDsnForRole(pgdsn, schema, ""))
 	assert.Nil(t, err)
 	defer db2.Close()
 	row := db2.QueryRow("SHOW search_path")
@@ -94,14 +94,15 @@ func TestCreateDsnForRole(t *testing.T) {
 	// given
 	dsn := "user=abc password=secret dbname=database host=localhost port=5432 sslmode=disable"
 	role := "test"
+	password := "mod"
 
 	// when
-	modifiedDsn := CreateDsnForRole(dsn, role)
+	modifiedDsn := CreateDsnForRole(dsn, role, password)
 	dsnMap := ParseDsn(modifiedDsn)
 
 	// then
 	assert.Equal(t, role, dsnMap["user"])
-	assert.Equal(t, "secret", dsnMap["password"])
+	assert.Equal(t, password, dsnMap["password"])
 	assert.Equal(t, "localhost", dsnMap["host"])
 	assert.Equal(t, "5432", dsnMap["port"])
 	assert.Equal(t, "disable", dsnMap["sslmode"])

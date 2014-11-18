@@ -59,9 +59,10 @@ func DropSchema(schema string, db *sqlx.DB) error {
 }
 
 // Takes an existing, valid dsn and replaces the user name with the specified role name.
-func CreateDsnForRole(existingDsn, role string) string {
+func CreateDsnForRole(existingDsn, role, password string) string {
 	dsnMap := ParseDsn(existingDsn)
 	dsnMap["user"] = role
+	dsnMap["password"] = password
 	return BuildDsn(dsnMap)
 }
 
