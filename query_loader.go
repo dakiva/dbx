@@ -24,12 +24,12 @@ type QueryIdentifier string
 
 type QueryMap map[QueryIdentifier]QueryValue
 
-// Finds and returns the query string for the given identifier. Returns a boolean flag indicating whether a valid query was found.
-func (this QueryMap) Q(name QueryIdentifier) (string, bool) {
+// Finds and returns the query string for the given identifier. Returns an empty string if a query was not found.
+func (this QueryMap) Q(name QueryIdentifier) string {
 	if value, ok := this[name]; ok {
-		return value.Query, ok
+		return value.Query
 	}
-	return "", false
+	return ""
 }
 
 // Loads named queries from explicit file locations, returning an error if a file could not be loaded or parsed as JSON. The JSON format is simply { "queryName", { "query" : "SELECT * FROM...", "description": "A select statement" }. If two queries have the same name either in the same file, or in disparate files, the last query loaded wins, overwriting the previously loaded query.
