@@ -22,9 +22,19 @@ import (
 // An alias representing a query identifier. The purpose of this alias is to force authors to keep query names in sync in code with the underlying query names stored in the query json files. While technically a violation of DRY, it is good practice to store the query names in one place in code, rather than hardcoding them as strings. This makes the queries easier to search for, reuse, and ultimately remove.
 type QueryIdentifier string
 
+type QueryMap map[QueryIdentifier]QueryValue
+
+// Finds and returns the query string for the given identifier. Returns a boolean flag indicating whether a valid query was found.
+func (this QueryMap) Q(name QueryIdentifier) (string, bool) {
+	if value, ok := this[name]; ok {
+		return value.Query, ok
+	}
+	return "", false
+}
+
 // Loads named queries from explicit file locations, returning an error if a file could not be loaded or parsed as JSON. The JSON format is simply { "queryName", { "query" : "SELECT * FROM...", "description": "A select statement" }. If two queries have the same name either in the same file, or in disparate files, the last query loaded wins, overwriting the previously loaded query.
-func LoadNamedQueries(fileLocations ...string) (map[QueryIdentifier]QueryValue, error) {
-	queryMap := make(map[QueryIdentifier]QueryValue)
+func LoadNamedQueries(fileLocations ...string) (QueryMap, error) {
+	queryMap := make(QueryMap)
 	for _, location := range fileLocations {
 		bytes, err := ioutil.ReadFile(location)
 		if err != nil {

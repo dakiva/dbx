@@ -23,6 +23,7 @@ import (
 const (
 	query1 QueryIdentifier = "Query1"
 	query2                 = "Query2"
+	query3                 = "Query3"
 )
 
 func TestBadNamedQueryFile(t *testing.T) {
@@ -44,8 +45,10 @@ func TestLoadNamedQueries(t *testing.T) {
 	assert.Equal(t, "query1", value.Query)
 	assert.Equal(t, "description1", value.Description)
 
-	value, ok = queryMap[query2]
+	value2, ok := queryMap.Q(query2)
 	assert.True(t, ok)
-	assert.Equal(t, "duplicate", value.Query)
-	assert.Equal(t, "duplicate description", value.Description)
+	assert.Equal(t, "duplicate", value2)
+
+	_, ok = queryMap.Q(query3)
+	assert.False(t, ok)
 }
