@@ -36,17 +36,13 @@ const (
       ...
 )
 
-queryMap := loadNamedQueries("path/to/querfile.json", "path/to/queryfile2.json")
+queryMap := LoadNamedQueries("path/to/querfile.json", "path/to/queryfile2.json")
 db *DB = ...
-db.Exec(queryMap[QueryA], ...)
+db.Exec(queryMap.Q(QueryA), ...)
 ```
 
-Additionally, an abstraction over DB is also provided allowing for use cases such as preparing connections - for casses such as setting the search_path when using Postgres schemas. The abstraction supports finding named queries using the mechanism above.
+Additionally, the schema_support file contains useful Postgres specific functions for managing schemas.
 
 About
 =====
 This library is written by Daniel Akiva and is licensed under the apache-2.0 license.  Pull requests are welcome.
-
-* TODO
-  - Provide out of the box repositories for RDBMS.
-  - Support for groups. This is useful when managing ACLs. Currently principals must be added directly to ACLs.
