@@ -1,7 +1,7 @@
 dbx
 ===
 
-A library that provides database extensions for Go. These tools are intended to work with both sql and sqlx.
+A library that provides database extensions for Go. This library requires sqlx, but is compatible with both sql and sqlx.
 
 [![wercker status](https://app.wercker.com/status/b4812ae58dbd3745ade9bd97647e90c9/m "wercker status")](https://app.wercker.com/project/bykey/b4812ae58dbd3745ade9bd97647e90c9)
 
@@ -25,6 +25,8 @@ Tests
 To run the tests, you'll need to connect to a Postgres database:
 
 POSTGRES_DSN="name= dbname= host= port= sslmode=" go test
+
+The pq Postgres driver and Testify are also required.
 
 Getting Started
 ===============
