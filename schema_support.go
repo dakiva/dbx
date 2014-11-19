@@ -19,8 +19,33 @@ import (
 	"fmt"
 	"strings"
 
+	"bitbucket.org/liamstask/goose/lib/goose"
+
 	"github.com/jmoiron/sqlx"
 )
+
+// Migrates a Postgres schema.
+// Accepts a dsn "user= password= dbname= host= port= sslmode=[disable|require|verify-ca|verify-full] connect-timeout=
+func MigrateSchema(dsn, schema, migrationsDir string) error {
+	// only supports Postgres
+	driver := goose.DBDriver{
+		Name:    "postgres",
+		OpenStr: dsn,
+		Import:  "github.com/lib/pq",
+		Dialect: &goose.PostgresDialect{},
+	}
+	conf := &goose.DBConf{
+		MigrationsDir: migrationsDir,
+		Env:           "",
+		Driver:        driver,
+		PgSchema:      schema,
+	}
+	targetVersion, err := goose.GetMostRecentDBVersion(migrationsDir)
+	if err != nil {
+		return err
+	}
+	return goose.RunMigrations(conf, migrationsDir, targetVersion)
+}
 
 // Creates a new Postgres schema along with a specific role as the owner.
 func CreateSchema(schema, password string, db *sqlx.DB) error {

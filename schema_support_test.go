@@ -55,7 +55,6 @@ func TestSchemaCreation(t *testing.T) {
 	val := ""
 	row.Scan(&val)
 	assert.Equal(t, schema, val)
-
 }
 
 func TestParseDsn(t *testing.T) {
@@ -108,4 +107,32 @@ func TestCreateDsnForRole(t *testing.T) {
 	assert.Equal(t, "5432", dsnMap["port"])
 	assert.Equal(t, "disable", dsnMap["sslmode"])
 	assert.Equal(t, "database", dsnMap["dbname"])
+}
+
+func TestSchemaMigration(t *testing.T) {
+	// given
+	pgdsn := os.Getenv(postgresDsn)
+	password := "pwd"
+	// create the schema
+	schema := fmt.Sprintf("schema%v", time.Now().Unix())
+	db, err := sqlx.Connect(pgType, pgdsn)
+	assert.Nil(t, err)
+	defer db.Close()
+	defer DropSchema(schema, db)
+
+	// when
+	CreateSchema(schema, password, db)
+	roleDsn := CreateDsnForRole(pgdsn, schema, password)
+	err = MigrateSchema(roleDsn, schema, "test_migration")
+
+	// then
+	assert.Nil(t, err)
+
+	db2, err := sqlx.Connect(pgType, roleDsn)
+	assert.Nil(t, err)
+	defer db2.Close()
+	row := db2.QueryRow("SELECT ColA FROM test WHERE ColA = 100")
+	var val int
+	row.Scan(&val)
+	assert.Equal(t, 100, val)
 }
