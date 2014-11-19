@@ -20,12 +20,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	query1 QueryIdentifier = "Query1"
-	query2                 = "Query2"
-	query3                 = "Query3"
-)
-
 func TestBadNamedQueryFile(t *testing.T) {
 	_, err := LoadNamedQueries("abc")
 
@@ -40,13 +34,13 @@ func TestLoadNamedQueries(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 2, len(queryMap))
 
-	value := queryMap[query1]
+	value := queryMap["Query1"]
 	assert.Equal(t, "query1", value.Query)
 	assert.Equal(t, "description1", value.Description)
 
-	value2 := queryMap.Q(query2)
+	value2 := queryMap.Q("Query2")
 	assert.Equal(t, "duplicate", value2)
 
-	value3 := queryMap.Q(query3)
+	value3 := queryMap.Q("Query3")
 	assert.Empty(t, value3)
 }

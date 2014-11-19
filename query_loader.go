@@ -19,13 +19,10 @@ import (
 	"io/ioutil"
 )
 
-// An alias representing a query identifier. The purpose of this alias is to force authors to keep query names in sync in code with the underlying query names stored in the query json files. While technically a violation of DRY, it is good practice to store the query names in one place in code, rather than hardcoding them as strings. This makes the queries easier to search for, reuse, and ultimately remove.
-type QueryIdentifier string
-
-type QueryMap map[QueryIdentifier]QueryValue
+type QueryMap map[string]QueryValue
 
 // Finds and returns the query string for the given identifier. Returns an empty string if a query was not found.
-func (this QueryMap) Q(name QueryIdentifier) string {
+func (this QueryMap) Q(name string) string {
 	if value, ok := this[name]; ok {
 		return value.Query
 	}
