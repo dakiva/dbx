@@ -24,8 +24,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// Migrates a Postgres schema.
-// Accepts a dsn "user= password= dbname= host= port= sslmode=[disable|require|verify-ca|verify-full] connect-timeout=
+// Migrates a Postgres schema. Returns an error if migration fails.
 func MigrateSchema(dsn, schema, migrationsDir string) error {
 	// only supports Postgres
 	driver := goose.DBDriver{
@@ -47,7 +46,7 @@ func MigrateSchema(dsn, schema, migrationsDir string) error {
 	return goose.RunMigrations(conf, migrationsDir, targetVersion)
 }
 
-// Creates a new Postgres schema along with a specific role as the owner.
+// Creates a new Postgres schema along with a specific role as the owner. Returns an error if schema creation fails.
 func CreateSchema(schema, password string, db *sqlx.DB) error {
 	if schema == "" {
 		return errors.New("Empty schema name specified")

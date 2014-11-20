@@ -16,6 +16,7 @@ package dbx
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 )
 
@@ -43,6 +44,15 @@ func LoadNamedQueries(fileLocations ...string) (QueryMap, error) {
 		}
 	}
 	return queryMap, nil
+}
+
+// Variant of LoadNamedQueries that panics if an error occurs while loading the queries.
+func MustLoadNamedQueries(fileLocations ...string) QueryMap {
+	queryMap, err := LoadNamedQueries(fileLocations...)
+	if err != nil {
+		panic(fmt.Sprintf("Error loading named queries: %v", err))
+	}
+	return queryMap
 }
 
 // Used for unmarshalling the queries json object.

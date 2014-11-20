@@ -28,7 +28,7 @@ func TestBadNamedQueryFile(t *testing.T) {
 
 func TestLoadNamedQueries(t *testing.T) {
 	// when
-	queryMap, err := LoadNamedQueries("test_queries.json")
+	queryMap, err := LoadNamedQueries("queries/test_queries.json")
 
 	// then
 	assert.Nil(t, err)
@@ -43,4 +43,10 @@ func TestLoadNamedQueries(t *testing.T) {
 
 	value3 := queryMap.Q("Query3")
 	assert.Empty(t, value3)
+}
+
+func TestMustLoadNamedQueries(t *testing.T) {
+	assert.Panics(t, func() {
+		MustLoadNamedQueries("abc")
+	})
 }

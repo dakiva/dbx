@@ -25,11 +25,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	pgType      = "postgres"
-	postgresDsn = "POSTGRES_DSN"
-)
-
 func TestSchemaCreation(t *testing.T) {
 	// given
 	pgdsn := os.Getenv(postgresDsn)
