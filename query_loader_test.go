@@ -28,7 +28,7 @@ func TestBadNamedQueryFile(t *testing.T) {
 
 func TestLoadNamedQueries(t *testing.T) {
 	// when
-	queryMap, err := LoadNamedQueries("queries/test_queries.json")
+	queryMap, err := LoadNamedQueries("db/queries/test_queries.json")
 
 	// then
 	assert.Nil(t, err)

@@ -118,7 +118,7 @@ func TestSchemaMigration(t *testing.T) {
 	// when
 	CreateSchema(schema, password, db)
 	roleDsn := CreateDsnForRole(pgdsn, schema, password)
-	err = MigrateSchema(roleDsn, schema, "test_migration")
+	err = MigrateSchema(roleDsn, schema, "db/migrations")
 
 	// then
 	assert.Nil(t, err)
