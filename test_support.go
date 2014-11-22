@@ -41,17 +41,17 @@ func InitializeTestDB(migrationsDir string) (*sqlx.DB, error) {
 	}
 	db, err := sqlx.Connect(pgType, pgdsn)
 	if err != nil {
-		return nil, errors.New("Error connecting to Postgres instance.")
+		return nil, err
 	}
 	defer db.Close()
 	err = CreateSchema(schema, rolePassword, db)
 	if err != nil {
-		return nil, errors.New("Error creating schema.")
+		return nil, err
 	}
 	schemaDsn := CreateDsnForRole(pgdsn, schema, rolePassword)
 	err = MigrateSchema(schemaDsn, schema, migrationsDir)
 	if err != nil {
-		return nil, errors.New("Error migrating schema.")
+		return nil, err
 	}
 	return sqlx.Connect(pgType, schemaDsn)
 }
