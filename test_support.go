@@ -15,7 +15,6 @@
 package dbx
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -26,7 +25,6 @@ import (
 
 const (
 	postgresDsn  = "POSTGRES_DSN"
-	pgType       = "postgres"
 	rolePassword = "password"
 )
 
@@ -36,26 +34,11 @@ const (
 func InitializeTestDB(migrationsDir string) (*sqlx.DB, error) {
 	schema := fmt.Sprintf("schema%v", time.Now().Unix())
 	pgdsn := os.Getenv(postgresDsn)
-	if pgdsn == "" {
-		return nil, errors.New("Error retrieving Postgres dsn.")
-	}
-	db, err := sqlx.Connect(pgType, pgdsn)
-	if err != nil {
-		return nil, err
-	}
-	defer db.Close()
-	err = CreateSchema(schema, rolePassword, db)
-	if err != nil {
-		return nil, err
-	}
-	schemaDsn := CreateDsnForRole(pgdsn, schema, rolePassword)
-	err = MigrateSchema(schemaDsn, schema, migrationsDir)
-	if err != nil {
-		return nil, err
-	}
-	return sqlx.Connect(pgType, schemaDsn)
+	return InitializeDB(pgdsn, schema, rolePassword, migrationsDir)
 }
 
+// Initializes and migrates a test schema, returning a DB object that has the proper search path
+// set to the initialized schema. This function will panic on an error.
 func MustInitializeTestDB(migrationsDir string) *sqlx.DB {
 	db, err := InitializeTestDB(migrationsDir)
 	if err != nil {

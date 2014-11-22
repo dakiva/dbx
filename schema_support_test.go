@@ -25,6 +25,25 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestInitializeDB(t *testing.T) {
+	// given
+	pgdsn := os.Getenv(postgresDsn)
+	schema := fmt.Sprintf("initschema%v", time.Now().Unix())
+	password := "pwd"
+
+	// when
+	db, err := InitializeDB(pgdsn, schema, password, "db/migrations")
+
+	// then
+	assert.Nil(t, err)
+	defer db.Close()
+	defer DropSchema(schema, db)
+	row := db.QueryRow("SHOW search_path")
+	val := ""
+	row.Scan(&val)
+	assert.Equal(t, schema, val)
+}
+
 func TestSchemaCreation(t *testing.T) {
 	// given
 	pgdsn := os.Getenv(postgresDsn)
@@ -109,7 +128,7 @@ func TestSchemaMigration(t *testing.T) {
 	pgdsn := os.Getenv(postgresDsn)
 	password := "pwd"
 	// create the schema
-	schema := fmt.Sprintf("schema%v", time.Now().Unix())
+	schema := fmt.Sprintf("migrateschema%v", time.Now().Unix())
 	db, err := sqlx.Connect(pgType, pgdsn)
 	assert.Nil(t, err)
 	defer db.Close()

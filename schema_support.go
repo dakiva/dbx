@@ -24,6 +24,47 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+const (
+	pgType = "postgres"
+)
+
+// Initializes and migrates a schema, returning a DB object that has the proper search path
+// set to the initialized schema.
+// Accepts a dsn "user= password= dbname= host= port= sslmode=[disable|require|verify-ca|verify-full] connect-timeout="
+// Schema must be set to a valid schema
+// migrationsDir is the path to the migration scripts. This function uses goose to migrate the
+// schema
+func InitializeDB(pgdsn, schema, schemaPassword, migrationsDir string) (*sqlx.DB, error) {
+	if pgdsn == "" {
+		return nil, errors.New("Postgres dsn must not be empty.")
+	}
+	db, err := sqlx.Connect(pgType, pgdsn)
+	if err != nil {
+		return nil, err
+	}
+	defer db.Close()
+	err = CreateSchema(schema, schemaPassword, db)
+	if err != nil {
+		return nil, err
+	}
+	schemaDsn := CreateDsnForRole(pgdsn, schema, schemaPassword)
+	err = MigrateSchema(schemaDsn, schema, migrationsDir)
+	if err != nil {
+		return nil, err
+	}
+	return sqlx.Connect(pgType, schemaDsn)
+}
+
+// Initializes and migrates a schema, returning a DB object thathas the proper search path
+// set to the initialized schema. This function will panic on an error.
+func MustInitializeDB(migrationsDir string) *sqlx.DB {
+	db, err := InitializeTestDB(migrationsDir)
+	if err != nil {
+		panic(fmt.Sprintf("Error initializing test database: %v", err))
+	}
+	return db
+}
+
 // Migrates a Postgres schema. Returns an error if migration fails.
 func MigrateSchema(dsn, schema, migrationsDir string) error {
 	// only supports Postgres
