@@ -56,9 +56,13 @@ func TestSchemaCreation(t *testing.T) {
 	defer DropSchema(schema, db)
 
 	// when
-	err = CreateSchema(schema, password, db)
+	err = EnsureSchema(schema, password, db)
 
 	// then
+	assert.Nil(t, err)
+
+	// calling ensure schema on an already initialized schema should result in no change
+	err = EnsureSchema(schema, password, db)
 	assert.Nil(t, err)
 
 	// verify the search path using the new Role
@@ -135,7 +139,7 @@ func TestSchemaMigration(t *testing.T) {
 	defer DropSchema(schema, db)
 
 	// when
-	CreateSchema(schema, password, db)
+	EnsureSchema(schema, password, db)
 	roleDsn := CreateDsnForRole(pgdsn, schema, password)
 	err = MigrateSchema(roleDsn, schema, "db/migrations")
 
@@ -149,4 +153,8 @@ func TestSchemaMigration(t *testing.T) {
 	var val int
 	row.Scan(&val)
 	assert.Equal(t, 100, val)
+
+	ver, err := GetCurrentSchemaVersion(schema, db)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, ver)
 }

@@ -30,7 +30,7 @@ const (
 
 // Initializes and migrates a schema, returning a DB object that has the proper search path
 // set to the initialized schema.
-// Accepts a dsn "user= password= dbname= host= port= sslmode=[disable|require|verify-ca|verify-full] connect-timeout="
+// Accepts a dsn "user= password= dbname= host= port= sslmode=[disable|require|verify-ca|verify-full] connect-timeout=" The role must have privileges to create a new database schema.
 // Schema must be set to a valid schema
 // migrationsDir is the path to the migration scripts. This function uses goose to migrate the
 // schema
@@ -43,7 +43,7 @@ func InitializeDB(pgdsn, schema, schemaPassword, migrationsDir string) (*sqlx.DB
 		return nil, err
 	}
 	defer db.Close()
-	err = CreateSchema(schema, schemaPassword, db)
+	err = EnsureSchema(schema, schemaPassword, db)
 	if err != nil {
 		return nil, err
 	}
@@ -60,17 +60,17 @@ func InitializeDB(pgdsn, schema, schemaPassword, migrationsDir string) (*sqlx.DB
 func MustInitializeDB(migrationsDir string) *sqlx.DB {
 	db, err := InitializeTestDB(migrationsDir)
 	if err != nil {
-		panic(fmt.Sprintf("Error initializing test database: %v", err))
+		panic(fmt.Sprintf("Error initializing database: %v", err))
 	}
 	return db
 }
 
 // Migrates a Postgres schema. Returns an error if migration fails.
-func MigrateSchema(dsn, schema, migrationsDir string) error {
+func MigrateSchema(pgdsn, schema, migrationsDir string) error {
 	// only supports Postgres
 	driver := goose.DBDriver{
-		Name:    "postgres",
-		OpenStr: dsn,
+		Name:    pgType,
+		OpenStr: pgdsn,
 		Import:  "github.com/lib/pq",
 		Dialect: &goose.PostgresDialect{},
 	}
@@ -87,16 +87,27 @@ func MigrateSchema(dsn, schema, migrationsDir string) error {
 	return goose.RunMigrations(conf, migrationsDir, targetVersion)
 }
 
-// Creates a new Postgres schema along with a specific role as the owner. Returns an error if schema creation fails.
-func CreateSchema(schema, password string, db *sqlx.DB) error {
+// Creates a new Postgres schema along with a specific role as the owner if neither exist.
+// Returns an error if schema creation fails. If the schema and/or role already exists, this
+// function ignores and continues without creation.
+func EnsureSchema(schema, password string, db *sqlx.DB) error {
 	if schema == "" {
 		return errors.New("Empty schema name specified")
 	}
-	_, err := db.Exec(fmt.Sprintf("CREATE ROLE %v WITH LOGIN ENCRYPTED PASSWORD '%v'", schema, password))
-	if err != nil {
-		return err
+	rows, err := db.Query(fmt.Sprintf("SELECT rolname FROM pg_roles WHERE rolname = '%v'", schema))
+	if !rows.Next() {
+		_, err = db.Exec(fmt.Sprintf("CREATE ROLE %v WITH LOGIN ENCRYPTED PASSWORD '%v'", schema, password))
+		if err != nil {
+			return err
+		}
+	} else {
+		// schema already exists, update the password
+		_, err = db.Exec(fmt.Sprintf("ALTER ROLE %v WITH ENCRYPTED PASSWORD '%v'", schema, password))
+		if err != nil {
+			return err
+		}
 	}
-	_, err = db.Exec(fmt.Sprintf("CREATE SCHEMA %v AUTHORIZATION %v", schema, schema))
+	_, err = db.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %v AUTHORIZATION %v", schema, schema))
 	if err != nil {
 		return err
 	}
@@ -123,11 +134,42 @@ func DropSchema(schema string, db *sqlx.DB) error {
 	return nil
 }
 
+// Returns the current schema version, or an error if the version could not be determined.
+// This function will create the migrations versions table if the migrations table does not
+// exist.
+func GetCurrentSchemaVersion(schema string, db *sqlx.DB) (int64, error) {
+	// only supports Postgres
+	driver := goose.DBDriver{
+		Name: pgType,
+		// open str is unused for checking the schema version
+		OpenStr: "",
+		Import:  "github.com/lib/pq",
+		Dialect: &goose.PostgresDialect{},
+	}
+	conf := &goose.DBConf{
+		// migrations dir is not needed for checking the schema version
+		MigrationsDir: "",
+		Env:           "",
+		Driver:        driver,
+		PgSchema:      schema,
+	}
+	// ensure the search path is set so that a versions table is not inadvertently created
+	// for the wrong schema.
+	_, err := db.Exec(fmt.Sprintf("SET search_path TO %v", schema))
+	if err != nil {
+		return -1, err
+	}
+	return goose.EnsureDBVersion(conf, db.DB)
+}
+
 // Takes an existing, valid dsn and replaces the user name with the specified role name.
+// If the password is non-empty, sets the password.
 func CreateDsnForRole(existingDsn, role, password string) string {
 	dsnMap := ParseDsn(existingDsn)
 	dsnMap["user"] = role
-	dsnMap["password"] = password
+	if password != "" {
+		dsnMap["password"] = password
+	}
 	return BuildDsn(dsnMap)
 }
 
