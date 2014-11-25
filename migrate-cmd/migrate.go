@@ -15,7 +15,6 @@ func main() {
 
 	flag.Parse()
 
-	log.Println(*dsn)
 	if *migrationsDir == "" {
 		log.Fatalln("A valid migrations directory is required.")
 	}
