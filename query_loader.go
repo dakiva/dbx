@@ -22,12 +22,12 @@ import (
 
 type QueryMap map[string]QueryValue
 
-// Finds and returns the query string for the given identifier. Returns an empty string if a query was not found.
+// Finds and returns the query string for the given identifier. Panics if a query was not found.
 func (this QueryMap) Q(name string) string {
 	if value, ok := this[name]; ok {
 		return value.Query
 	}
-	return ""
+	panic(fmt.Sprintf("Could not find a query for name: %v", name))
 }
 
 // Loads named queries from explicit file locations, returning an error if a file could not be loaded or parsed as JSON. The JSON format is simply { "queryName", { "query" : "SELECT * FROM...", "description": "A select statement" }. If two queries have the same name either in the same file, or in disparate files, the last query loaded wins, overwriting the previously loaded query.
