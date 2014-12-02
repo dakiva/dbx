@@ -41,8 +41,9 @@ func TestLoadNamedQueries(t *testing.T) {
 	value2 := queryMap.Q("Query2")
 	assert.Equal(t, "duplicate", value2)
 
-	value3 := queryMap.Q("Query3")
-	assert.Empty(t, value3)
+	assert.Panics(t, func() {
+		queryMap.Q("Query3")
+	})
 }
 
 func TestMustLoadNamedQueries(t *testing.T) {
