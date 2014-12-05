@@ -1,15 +1,12 @@
 dbx
-===
+---
 
 A library that provides database extensions for Go. This library requires sqlx, but is compatible with both sql and sqlx.
 
 [![wercker status](https://app.wercker.com/status/b4812ae58dbd3745ade9bd97647e90c9/m "wercker status")](https://app.wercker.com/project/bykey/b4812ae58dbd3745ade9bd97647e90c9)
 
 Overview
-========
-Nogo provides easy to use role-based access controls for servers as well as access control lists (ACLs) support for defining access to resources.
-
-DISCLAIMER: This is a work in progress and has not yet been locked down. Expect the APIs to change until otherwise noted.
+--------
 
 Installation
 ============
@@ -47,4 +44,4 @@ Additionally, the schema_support file contains useful Postgres specific function
 
 About
 =====
-This library is written by Daniel Akiva and is licensed under the apache-2.0 license.  Pull requests are welcome.
+This library is written by *Daniel Akiva (dakiva)* and is licensed under the apache-2.0 license.  Pull requests are welcome.
