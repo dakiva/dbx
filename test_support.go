@@ -28,13 +28,15 @@ const (
 	rolePassword = "password"
 )
 
+var testSchema string
+
 // Initializes and migrates a test schema, returning a DB object that has the proper search path
 // set to the initialized schema.
 // Accepts a dsn "user= password= dbname= host= port= sslmode=[disable|require|verify-ca|verify-full] connect-timeout=
 func InitializeTestDB(migrationsDir string) (*sqlx.DB, error) {
-	schema := fmt.Sprintf("schema%v", time.Now().Unix())
+	testSchema = fmt.Sprintf("schema%v", time.Now().Unix())
 	pgdsn := os.Getenv(postgresDsn)
-	return InitializeDB(pgdsn, schema, rolePassword, migrationsDir)
+	return InitializeDB(pgdsn, testSchema, rolePassword, migrationsDir)
 }
 
 // Initializes and migrates a test schema, returning a DB object that has the proper search path
@@ -45,4 +47,14 @@ func MustInitializeTestDB(migrationsDir string) *sqlx.DB {
 		panic(fmt.Sprintf("Error initializing test database: %v", err))
 	}
 	return db
+}
+
+// Drops the test schema, returning an error if dropping the schema fails.
+func TearDownTestDB() error {
+	pgdsn := os.Getenv(postgresDsn)
+	db, err := sqlx.Connect(pgType, pgdsn)
+	if err != nil {
+		return err
+	}
+	return DropSchema(testSchema, db)
 }
