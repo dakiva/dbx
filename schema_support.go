@@ -107,7 +107,11 @@ func EnsureSchema(schema, password string, db *sqlx.DB) error {
 			return err
 		}
 	}
-	_, err = db.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %v AUTHORIZATION %v", schema, schema))
+	_, err = db.Exec(fmt.Sprintf("CREATE SCHEMA IF NOT EXISTS %v", schema))
+	if err != nil {
+		return err
+	}
+	_, err = db.Exec(fmt.Sprintf("ALTER SCHEMA %v OWNER TO %v", schema, schema))
 	if err != nil {
 		return err
 	}
