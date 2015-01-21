@@ -17,7 +17,6 @@ package dbx
 import (
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -28,21 +27,18 @@ const (
 	rolePassword = "password"
 )
 
-var testSchema string
-
 // Initializes and migrates a test schema, returning a DB object that has the proper search path
 // set to the initialized schema.
 // Accepts a dsn "user= password= dbname= host= port= sslmode=[disable|require|verify-ca|verify-full] connect-timeout=
-func InitializeTestDB(migrationsDir string) (*sqlx.DB, error) {
-	testSchema = fmt.Sprintf("schema%v", time.Now().Unix())
+func InitializeTestDB(schemaName, migrationsDir string) (*sqlx.DB, error) {
 	pgdsn := os.Getenv(postgresDsn)
-	return InitializeDB(pgdsn, testSchema, rolePassword, migrationsDir)
+	return InitializeDB(pgdsn, schemaName, rolePassword, migrationsDir)
 }
 
 // Initializes and migrates a test schema, returning a DB object that has the proper search path
 // set to the initialized schema. This function will panic on an error.
-func MustInitializeTestDB(migrationsDir string) *sqlx.DB {
-	db, err := InitializeTestDB(migrationsDir)
+func MustInitializeTestDB(schemaName, migrationsDir string) *sqlx.DB {
+	db, err := InitializeTestDB(schemaName, migrationsDir)
 	if err != nil {
 		panic(fmt.Sprintf("Error initializing test database: %v", err))
 	}
@@ -50,11 +46,11 @@ func MustInitializeTestDB(migrationsDir string) *sqlx.DB {
 }
 
 // Drops the test schema, returning an error if dropping the schema fails.
-func TearDownTestDB() error {
+func TearDownTestDB(schemaName string) error {
 	pgdsn := os.Getenv(postgresDsn)
 	db, err := sqlx.Connect(pgType, pgdsn)
 	if err != nil {
 		return err
 	}
-	return DropSchema(testSchema, db)
+	return DropSchema(schemaName, db)
 }
