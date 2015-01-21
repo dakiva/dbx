@@ -28,8 +28,6 @@ const (
 	rolePassword = "password"
 )
 
-var counter = 0
-
 // Initializes and migrates a test schema, returning a DB object that has the proper search path
 // set to the initialized schema.
 // Accepts a dsn "user= password= dbname= host= port= sslmode=[disable|require|verify-ca|verify-full] connect-timeout=
@@ -59,7 +57,6 @@ func TearDownTestDB(schemaName string) error {
 }
 
 // Generates a unique schema name suitable for use during testing.
-func GenerateSchemaName() string {
-	counter++
-	return fmt.Sprintf("schema%v%v", time.Now().Unix(), counter)
+func GenerateSchemaName(prefix string) string {
+	return fmt.Sprintf("%v%v", prefix, time.Now().Unix())
 }
