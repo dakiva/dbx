@@ -17,6 +17,7 @@ package dbx
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -26,6 +27,8 @@ const (
 	postgresDsn  = "POSTGRES_DSN"
 	rolePassword = "password"
 )
+
+var counter = 0
 
 // Initializes and migrates a test schema, returning a DB object that has the proper search path
 // set to the initialized schema.
@@ -53,4 +56,10 @@ func TearDownTestDB(schemaName string) error {
 		return err
 	}
 	return DropSchema(schemaName, db)
+}
+
+// Generates a unique schema name suitable for use during testing.
+func GenerateSchemaName() string {
+	counter++
+	return fmt.Sprintf("schema%v%v", time.Now().Unix(), counter)
 }
