@@ -57,8 +57,8 @@ func InitializeDB(pgdsn, schema, schemaPassword, migrationsDir string) (*sqlx.DB
 
 // Initializes and migrates a schema, returning a DB object thathas the proper search path
 // set to the initialized schema. This function will panic on an error.
-func MustInitializeDB(migrationsDir string) *sqlx.DB {
-	db, err := InitializeTestDB(migrationsDir)
+func MustInitializeDB(pgdsn, schema, schemaPassword, migrationsDir string) *sqlx.DB {
+	db, err := InitializeDB(pgdsn, schema, schemaPassword, migrationsDir)
 	if err != nil {
 		panic(fmt.Sprintf("Error initializing database: %v", err))
 	}
