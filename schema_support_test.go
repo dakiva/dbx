@@ -156,5 +156,5 @@ func TestSchemaMigration(t *testing.T) {
 
 	ver, err := GetCurrentSchemaVersion(schema, db)
 	assert.Nil(t, err)
-	assert.Equal(t, 1, ver)
+	assert.Equal(t, int64(1), ver)
 }
