@@ -35,7 +35,7 @@ func TestInitializeDB(t *testing.T) {
 	db, err := InitializeDB(pgdsn, schema, password, "db/migrations")
 
 	// then
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	defer db.Close()
 	defer DropSchema(schema, db)
 	row := db.QueryRow("SHOW search_path")
@@ -59,15 +59,15 @@ func TestSchemaCreation(t *testing.T) {
 	err = EnsureSchema(schema, password, db)
 
 	// then
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	// calling ensure schema on an already initialized schema should result in no change
 	err = EnsureSchema(schema, password, db)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	// verify the search path using the new Role
 	db2, err := sqlx.Connect(pgType, CreateDsnForRole(pgdsn, schema, password))
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	defer db2.Close()
 	row := db2.QueryRow("SHOW search_path")
 	val := ""
@@ -79,7 +79,7 @@ func TestParseDsn(t *testing.T) {
 	// given
 	dsn := "user=abc password=secret dbname=database host=localhost port=5432 sslmode=disable"
 	// when
-	dsnMap := ParseDsn(dsn)
+	dsnMap := parseDsn(dsn)
 
 	// then
 	assert.Equal(t, "abc", dsnMap["user"])
@@ -101,8 +101,8 @@ func TestBuildDsn(t *testing.T) {
 	dsnMap["dbname"] = "database"
 
 	// when
-	dsn := BuildDsn(dsnMap)
-	parsedMap := ParseDsn(dsn)
+	dsn := buildDsn(dsnMap)
+	parsedMap := parseDsn(dsn)
 
 	// then
 	assert.Equal(t, dsnMap, parsedMap)
@@ -116,7 +116,7 @@ func TestCreateDsnForRole(t *testing.T) {
 
 	// when
 	modifiedDsn := CreateDsnForRole(dsn, role, password)
-	dsnMap := ParseDsn(modifiedDsn)
+	dsnMap := parseDsn(modifiedDsn)
 
 	// then
 	assert.Equal(t, role, dsnMap["user"])
@@ -134,7 +134,7 @@ func TestSchemaMigration(t *testing.T) {
 	// create the schema
 	schema := fmt.Sprintf("migrateschema%v", time.Now().Unix())
 	db, err := sqlx.Connect(pgType, pgdsn)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	defer db.Close()
 	defer DropSchema(schema, db)
 
@@ -144,10 +144,10 @@ func TestSchemaMigration(t *testing.T) {
 	err = MigrateSchema(roleDsn, schema, "db/migrations")
 
 	// then
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 
 	db2, err := sqlx.Connect(pgType, roleDsn)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	defer db2.Close()
 	row := db2.QueryRow("SELECT ColA FROM test WHERE ColA = 100")
 	var val int
@@ -155,6 +155,51 @@ func TestSchemaMigration(t *testing.T) {
 	assert.Equal(t, 100, val)
 
 	ver, err := GetCurrentSchemaVersion(schema, db)
-	assert.Nil(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, int64(1), ver)
+}
+
+func TestInstallExtensionsWithNoFile(t *testing.T) {
+	// given
+	migrationsDir := "db/extNoFile"
+	pgdsn := os.Getenv(postgresDsn)
+	db, err := sqlx.Connect(pgType, pgdsn)
+	assert.NoError(t, err)
+	defer db.Close()
+
+	// when
+	err = InstallExtensions(migrationsDir, db)
+
+	// then
+	assert.NoError(t, err)
+}
+
+func TestInstallExtensionsWithBadFile(t *testing.T) {
+	// given
+	migrationsDir := "db/extBadFile"
+	pgdsn := os.Getenv(postgresDsn)
+	db, err := sqlx.Connect(pgType, pgdsn)
+	assert.NoError(t, err)
+	defer db.Close()
+
+	// when
+	err = InstallExtensions(migrationsDir, db)
+
+	// then
+	assert.Error(t, err)
+}
+
+func TestInstallExtensions(t *testing.T) {
+	// given
+	migrationsDir := "db/extGoodFile"
+	pgdsn := os.Getenv(postgresDsn)
+	db, err := sqlx.Connect(pgType, pgdsn)
+	assert.NoError(t, err)
+	defer db.Close()
+
+	// when
+	err = InstallExtensions(migrationsDir, db)
+
+	// then
+	assert.NoError(t, err)
 }

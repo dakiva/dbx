@@ -17,6 +17,9 @@ package dbx
 import (
 	"errors"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"bitbucket.org/liamstask/goose/lib/goose"
@@ -25,12 +28,13 @@ import (
 )
 
 const (
-	pgType = "postgres"
+	pgType             = "postgres"
+	extensionsFileName = "_extensions.sql"
 )
 
 // Initializes and migrates a schema, returning a DB object that has the proper search path
 // set to the initialized schema.
-// Accepts a dsn "user= password= dbname= host= port= sslmode=[disable|require|verify-ca|verify-full] connect-timeout=" The role must have privileges to create a new database schema.
+// Accepts a dsn "user= password= dbname= host= port= sslmode=[disable|require|verify-ca|verify-full] connect-timeout=" The role must have privileges to create a new database schema and install extensions.
 // Schema must be set to a valid schema
 // migrationsDir is the path to the migration scripts. This function uses goose to migrate the
 // schema
@@ -48,6 +52,10 @@ func InitializeDB(pgdsn, schema, schemaPassword, migrationsDir string) (*sqlx.DB
 		return nil, err
 	}
 	schemaDsn := CreateDsnForRole(pgdsn, schema, schemaPassword)
+	err = InstallExtensions(migrationsDir, db)
+	if err != nil {
+		return nil, err
+	}
 	err = MigrateSchema(schemaDsn, schema, migrationsDir)
 	if err != nil {
 		return nil, err
@@ -85,6 +93,29 @@ func MigrateSchema(pgdsn, schema, migrationsDir string) error {
 		return err
 	}
 	return goose.RunMigrations(conf, migrationsDir, targetVersion)
+}
+
+// Looks for an _extensions.sql file in the migrations dir, loads and executes the SQL statements using the admin
+// DB connection. This function is a noop if the file does not exist.
+func InstallExtensions(migrationsDir string, db *sqlx.DB) error {
+	contents, err := ioutil.ReadFile(filepath.Join(migrationsDir, extensionsFileName))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	extensionQueries := strings.Split(string(contents), "\n")
+	for _, query := range extensionQueries {
+		sanitized := strings.TrimSpace(query)
+		if sanitized != "" && !strings.HasPrefix(sanitized, "--") {
+			_, err := db.Exec(sanitized)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // Creates a new Postgres schema along with a specific role as the owner if neither exist.
@@ -169,16 +200,16 @@ func GetCurrentSchemaVersion(schema string, db *sqlx.DB) (int64, error) {
 // Takes an existing, valid dsn and replaces the user name with the specified role name.
 // If the password is non-empty, sets the password.
 func CreateDsnForRole(existingDsn, role, password string) string {
-	dsnMap := ParseDsn(existingDsn)
+	dsnMap := parseDsn(existingDsn)
 	dsnMap["user"] = role
 	if password != "" {
 		dsnMap["password"] = password
 	}
-	return BuildDsn(dsnMap)
+	return buildDsn(dsnMap)
 }
 
 // Parses a dsn into a map
-func ParseDsn(dsn string) map[string]string {
+func parseDsn(dsn string) map[string]string {
 	dsnMap := make(map[string]string)
 	params := strings.Split(dsn, " ")
 	for _, param := range params {
@@ -189,7 +220,7 @@ func ParseDsn(dsn string) map[string]string {
 }
 
 // Builds a dsn from a map
-func BuildDsn(dsnMap map[string]string) string {
+func buildDsn(dsnMap map[string]string) string {
 	dsn := ""
 	for param, value := range dsnMap {
 		if dsn != "" {
