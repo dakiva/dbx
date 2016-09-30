@@ -29,7 +29,7 @@ import (
 
 const (
 	pgType             = "postgres"
-	extensionsFileName = "_extensions.sql"
+	extensionsFileName = "_extensions"
 )
 
 // Initializes and migrates a schema, returning a DB object that has the proper search path
@@ -52,7 +52,7 @@ func InitializeDB(pgdsn, schema, schemaPassword, migrationsDir string) (*sqlx.DB
 		return nil, err
 	}
 	schemaDsn := CreateDsnForRole(pgdsn, schema, schemaPassword)
-	err = InstallExtensions(migrationsDir, db)
+	err = InstallExtensions(schema, migrationsDir, db)
 	if err != nil {
 		return nil, err
 	}
@@ -95,9 +95,10 @@ func MigrateSchema(pgdsn, schema, migrationsDir string) error {
 	return goose.RunMigrations(conf, migrationsDir, targetVersion)
 }
 
-// Looks for an _extensions.sql file in the migrations dir, loads and executes the SQL statements using the admin
-// DB connection. This function is a noop if the file does not exist.
-func InstallExtensions(migrationsDir string, db *sqlx.DB) error {
+// Looks for an _extensions file in the migrations dir, loads and attempts to create the extensions
+// with the objects of the extension stored within the newly created schema.
+// This function is a noop if the file does not exist.
+func InstallExtensions(schema, migrationsDir string, db *sqlx.DB) error {
 	contents, err := ioutil.ReadFile(filepath.Join(migrationsDir, extensionsFileName))
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -105,11 +106,11 @@ func InstallExtensions(migrationsDir string, db *sqlx.DB) error {
 		}
 		return err
 	}
-	extensionQueries := strings.Split(string(contents), "\n")
-	for _, query := range extensionQueries {
-		sanitized := strings.TrimSpace(query)
-		if sanitized != "" && !strings.HasPrefix(sanitized, "--") {
-			_, err := db.Exec(sanitized)
+	extensions := strings.Split(string(contents), "\n")
+	for _, extension := range extensions {
+		sanitized := strings.TrimSpace(extension)
+		if sanitized != "" {
+			_, err := db.Exec(fmt.Sprintf("CREATE EXTENSION IF NOT EXISTS %v WITH SCHEMA %v", sanitized, schema))
 			if err != nil {
 				return err
 			}
