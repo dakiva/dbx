@@ -19,8 +19,8 @@ func main() {
 	schema := flag.String("schema", "", "Schema name to migrate.")
 	password := flag.String("password", "", "Schema role password to set when creating the schema role.")
 	dsn := flag.String("dsn", "", "Postgres data source name parameters. Can also be specified using the POSTGRES_DSN environment variable.")
-	dropSchema := flag.Bool("drop", false, "Drops the specified schema.")
-
+	dropSchema := flag.Bool("drop", false, "Drops the specified schema. Migrations do not occur if this is specified.")
+	removeExtensions := flag.Bool("removeExtensions", false, "Attempts to remove all unused extensions specified in the _extensions file. Migrations do not occur if this flag is specified.")
 	flag.Parse()
 
 	if *dsn != "" {
@@ -35,16 +35,7 @@ func main() {
 		log.Fatalln("A valid schema name is required.")
 	}
 
-	if !*dropSchema {
-		if *migrationsDir == "" {
-			log.Fatalln("A valid migrations directory is required.")
-		}
-		db, err := dbx.InitializeDB(pgdsn, *schema, *password, *migrationsDir)
-		if err != nil {
-			log.Fatalln(err)
-		}
-		db.Close()
-	} else {
+	if *dropSchema {
 		db, err := sqlx.Connect("postgres", *dsn)
 		if err != nil {
 			log.Fatalln(err)
@@ -54,5 +45,28 @@ func main() {
 		if err != nil {
 			log.Fatalln(err)
 		}
+		return
 	}
+
+	if *migrationsDir == "" {
+		log.Fatalln("A valid migrations directory is required.")
+	}
+
+	if *removeExtensions {
+		db, err := sqlx.Connect("postgres", *dsn)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		defer db.Close()
+		err = dbx.RemoveExtensions(*schema, db)
+		if err != nil {
+			log.Fatalln(err)
+		}
+		return
+	}
+	db, err := dbx.InitializeDB(pgdsn, *schema, *password, *migrationsDir)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	db.Close()
 }

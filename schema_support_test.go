@@ -174,12 +174,32 @@ func TestInstallExtensionsWithNoFile(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-var RUN_INSTALL_EXTENSIONS_TEST = false
+func TestRemoveExtensionsWithNoFile(t *testing.T) {
+	// this test automatically drops it which could interfere
+	// with local databases that may already have the extension created.
+	if !RUN_EXTENSIONS_TEST {
+		return
+	}
+	// given
+	migrationsDir := "db/extNoFile"
+	pgdsn := os.Getenv(postgresDsn)
+	db, err := sqlx.Connect(pgType, pgdsn)
+	assert.NoError(t, err)
+	defer db.Close()
 
-func TestInstallExtensions(t *testing.T) {
+	// when
+	err = RemoveExtensions(migrationsDir, db)
+
+	// then
+	assert.NoError(t, err)
+}
+
+var RUN_EXTENSIONS_TEST = false
+
+func TestExtensions(t *testing.T) {
 	// this test actually creates the pg_trgm extension and drops it which could interfere
 	// with local databases that may already have the extension created.
-	if !RUN_INSTALL_EXTENSIONS_TEST {
+	if !RUN_EXTENSIONS_TEST {
 		return
 	}
 	// given
@@ -194,6 +214,6 @@ func TestInstallExtensions(t *testing.T) {
 
 	// then
 	assert.NoError(t, err)
-	_, err = db.Exec("DROP EXTENSION pg_trgm")
+	err = RemoveExtensions(migrationsDir, db)
 	assert.NoError(t, err)
 }

@@ -52,6 +52,10 @@ func InitializeDB(pgdsn, schema, schemaPassword, migrationsDir string) (*sqlx.DB
 		return nil, err
 	}
 	schemaDsn := CreateDsnForRole(pgdsn, schema, schemaPassword)
+	err = fixPrivileges(pgdsn, schema, schemaDsn)
+	if err != nil {
+		return nil, err
+	}
 	err = InstallExtensions(schema, migrationsDir, db)
 	if err != nil {
 		return nil, err
@@ -95,25 +99,35 @@ func MigrateSchema(pgdsn, schema, migrationsDir string) error {
 	return goose.RunMigrations(conf, migrationsDir, targetVersion)
 }
 
+// Attempts to remove all extensions. This function will not halt on an error and will iterate through all extensions.
+// Removal does not remove the extension if it is in use. The first error found is returned.
+func RemoveExtensions(migrationsDir string, db *sqlx.DB) error {
+	extensions, err := getExtensions(migrationsDir)
+	if err != nil {
+		return err
+	}
+	var retErr error
+	for _, extension := range extensions {
+		_, err := db.Exec(fmt.Sprintf("DROP EXTENSION IF EXISTS %v", extension))
+		if err != nil && retErr == nil {
+			retErr = err
+		}
+	}
+	return retErr
+}
+
 // Looks for an _extensions file in the migrations dir, loads and attempts to create the extensions
 // with the objects of the extension stored within the newly created schema.
 // This function is a noop if the file does not exist.
 func InstallExtensions(schema, migrationsDir string, db *sqlx.DB) error {
-	contents, err := ioutil.ReadFile(filepath.Join(migrationsDir, extensionsFileName))
+	extensions, err := getExtensions(migrationsDir)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
 		return err
 	}
-	extensions := strings.Split(string(contents), "\n")
 	for _, extension := range extensions {
-		sanitized := strings.TrimSpace(extension)
-		if sanitized != "" {
-			_, err := db.Exec(fmt.Sprintf("CREATE EXTENSION IF NOT EXISTS %v WITH SCHEMA %v", sanitized, schema))
-			if err != nil {
-				return err
-			}
+		_, err := db.Exec(fmt.Sprintf("CREATE EXTENSION IF NOT EXISTS %v WITH SCHEMA %v", extension, schema))
+		if err != nil {
+			return err
 		}
 	}
 	return nil
@@ -209,6 +223,25 @@ func CreateDsnForRole(existingDsn, role, password string) string {
 	return buildDsn(dsnMap)
 }
 
+// On some managed databases, such as RDS, the admin user is not really the actual super user and thus
+// does not have privileges to modify the schema once the ownership is altered. This is required in order
+// to properly install extensions.
+func fixPrivileges(pgdsn, schema, schemaDsn string) error {
+	parsed := parseDsn(pgdsn)
+	if adminUser, ok := parsed["user"]; ok {
+		db, err := sqlx.Connect(pgType, schemaDsn)
+		if err != nil {
+			return err
+		}
+		defer db.Close()
+		_, err = db.Exec(fmt.Sprintf("GRANT ALL PRIVILEGES ON SCHEMA %v TO %v", schema, adminUser))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Parses a dsn into a map
 func parseDsn(dsn string) map[string]string {
 	dsnMap := make(map[string]string)
@@ -230,4 +263,25 @@ func buildDsn(dsnMap map[string]string) string {
 		dsn += fmt.Sprintf("%v=%v", param, value)
 	}
 	return dsn
+}
+
+// returns all extensions found in the _extensions file in the migrations directory, or an error
+// If the _extensions file does not exist, no error is returned.
+func getExtensions(migrationsDir string) ([]string, error) {
+	contents, err := ioutil.ReadFile(filepath.Join(migrationsDir, extensionsFileName))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	extensions := strings.Split(string(contents), "\n")
+	sanitizedExtensions := make([]string, 0)
+	for _, extension := range extensions {
+		sanitized := strings.TrimSpace(extension)
+		if sanitized != "" {
+			extensions = append(extensions, extension)
+		}
+	}
+	return sanitizedExtensions, nil
 }
