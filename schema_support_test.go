@@ -175,11 +175,6 @@ func TestInstallExtensionsWithNoFile(t *testing.T) {
 }
 
 func TestRemoveExtensionsWithNoFile(t *testing.T) {
-	// this test automatically drops it which could interfere
-	// with local databases that may already have the extension created.
-	if !RUN_EXTENSIONS_TEST {
-		return
-	}
 	// given
 	migrationsDir := "db/extNoFile"
 	pgdsn := os.Getenv(postgresDsn)
@@ -216,4 +211,17 @@ func TestExtensions(t *testing.T) {
 	assert.NoError(t, err)
 	err = RemoveExtensions(migrationsDir, db)
 	assert.NoError(t, err)
+}
+
+func TestGetExtensions(t *testing.T) {
+	// given
+	migrationsDir := "db/extGoodFile"
+
+	// when
+	extensions, err := getExtensions(migrationsDir)
+
+	// then
+	assert.NoError(t, err)
+	assert.Len(t, extensions, 1)
+	assert.Equal(t, "pg_trgm", extensions[0])
 }

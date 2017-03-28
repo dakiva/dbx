@@ -280,7 +280,7 @@ func getExtensions(migrationsDir string) ([]string, error) {
 	for _, extension := range extensions {
 		sanitized := strings.TrimSpace(extension)
 		if sanitized != "" {
-			extensions = append(extensions, extension)
+			sanitizedExtensions = append(sanitizedExtensions, extension)
 		}
 	}
 	return sanitizedExtensions, nil
