@@ -9,12 +9,8 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-const (
-	postgresDsn = "POSTGRES_DSN"
-)
-
 func main() {
-	pgdsn := os.Getenv(postgresDsn)
+	pgdsn := os.Getenv(dbx.PostgresDsnEnv)
 	migrationsDir := flag.String("migrations", "", "Path to migration scripts directory.")
 	schema := flag.String("schema", "", "Schema name to migrate.")
 	password := flag.String("password", "", "Schema role password to set when creating the schema role.")
