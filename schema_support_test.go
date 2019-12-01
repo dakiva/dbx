@@ -26,7 +26,7 @@ import (
 
 func TestInitializeDB(t *testing.T) {
 	// given
-	pgdsn := GetTestDsn()
+	pgdsn := GetDsn()
 	schema := fmt.Sprintf("initschema%v", time.Now().Unix())
 	password := "pwd"
 
@@ -45,11 +45,11 @@ func TestInitializeDB(t *testing.T) {
 
 func TestSchemaCreation(t *testing.T) {
 	// given
-	pgdsn := GetTestDsn()
+	pgdsn := GetDsn()
 	password := "pwd"
 	// create the schema
 	schema := fmt.Sprintf("schema%v", time.Now().Unix())
-	db, err := sqlx.Connect(pgType, pgdsn)
+	db, err := sqlx.Connect(PostgresType, pgdsn)
 	assert.Nil(t, err)
 	defer db.Close()
 	defer DropSchema(schema, db)
@@ -65,7 +65,7 @@ func TestSchemaCreation(t *testing.T) {
 	assert.NoError(t, err)
 
 	// verify the search path using the new Role
-	db2, err := sqlx.Connect(pgType, CreateDsnForRole(pgdsn, schema, password))
+	db2, err := sqlx.Connect(PostgresType, CreateDsnForRole(pgdsn, schema, password))
 	assert.NoError(t, err)
 	defer db2.Close()
 	row := db2.QueryRow("SHOW search_path")
@@ -79,7 +79,7 @@ func TestParseDsn(t *testing.T) {
 	// given
 	dsn := "user=abc password=secret dbname=database host=localhost port=5432 sslmode=disable"
 	// when
-	dsnMap := parseDsn(dsn)
+	dsnMap := ParseDsn(dsn)
 
 	// then
 	assert.Equal(t, "abc", dsnMap["user"])
@@ -101,8 +101,8 @@ func TestBuildDsn(t *testing.T) {
 	dsnMap["dbname"] = "database"
 
 	// when
-	dsn := buildDsn(dsnMap)
-	parsedMap := parseDsn(dsn)
+	dsn := BuildDsn(dsnMap)
+	parsedMap := ParseDsn(dsn)
 
 	// then
 	assert.Equal(t, dsnMap, parsedMap)
@@ -116,7 +116,7 @@ func TestCreateDsnForRole(t *testing.T) {
 
 	// when
 	modifiedDsn := CreateDsnForRole(dsn, role, password)
-	dsnMap := parseDsn(modifiedDsn)
+	dsnMap := ParseDsn(modifiedDsn)
 
 	// then
 	assert.Equal(t, role, dsnMap["user"])
@@ -129,11 +129,11 @@ func TestCreateDsnForRole(t *testing.T) {
 
 func TestSchemaMigration(t *testing.T) {
 	// given
-	pgdsn := GetTestDsn()
+	pgdsn := GetDsn()
 	password := "pwd"
 	// create the schema
 	schema := fmt.Sprintf("migrateschema%v", time.Now().Unix())
-	db, err := sqlx.Connect(pgType, pgdsn)
+	db, err := sqlx.Connect(PostgresType, pgdsn)
 	assert.NoError(t, err)
 	defer db.Close()
 	defer DropSchema(schema, db)
@@ -147,7 +147,7 @@ func TestSchemaMigration(t *testing.T) {
 	// then
 	assert.NoError(t, err)
 
-	db2, err := sqlx.Connect(pgType, roleDsn)
+	db2, err := sqlx.Connect(PostgresType, roleDsn)
 	assert.NoError(t, err)
 	defer db2.Close()
 	row := db2.QueryRow("SELECT ColA FROM test WHERE ColA = 100")

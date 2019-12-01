@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/user"
 	"path/filepath"
 	"strings"
 
@@ -28,7 +29,11 @@ import (
 )
 
 const (
-	pgType             = "postgres"
+	// PostgresType is the internal type used to initialize a sql or sqlx DB object for postgres databases.
+	PostgresType = "postgres"
+	// PostgresDsnEnv is the environment variable name holding the Postgres Dsn
+	PostgresDsnEnv     = "POSTGRES_DSN"
+	defaultUser        = "postgres"
 	extensionsFileName = "_extensions"
 )
 
@@ -41,7 +46,7 @@ func InitializeDB(pgdsn, schema, schemaPassword, migrationsDir string) (*sqlx.DB
 	if pgdsn == "" {
 		return nil, errors.New("Postgres dsn must not be empty")
 	}
-	db, err := sqlx.Connect(pgType, pgdsn)
+	db, err := sqlx.Connect(PostgresType, pgdsn)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +68,7 @@ func InitializeDB(pgdsn, schema, schemaPassword, migrationsDir string) (*sqlx.DB
 	if err != nil {
 		return nil, err
 	}
-	return sqlx.Connect(pgType, schemaDsn)
+	return sqlx.Connect(PostgresType, schemaDsn)
 }
 
 // MustInitializeDB calls InitializeDB  returning a DB object that has the proper search path
@@ -76,11 +81,44 @@ func MustInitializeDB(pgdsn, schema, schemaPassword, migrationsDir string) *sqlx
 	return db
 }
 
+// GetDsn returns a datasource name suitable for use during testing by first looking
+// for a dsn in an environment variable POSTGRES_DSN. If the environment variable is not
+// set, generates a DSN using suitable local values.
+func GetDsn() string {
+	if pgdsn, exists := os.LookupEnv(PostgresDsnEnv); exists {
+		return pgdsn
+	}
+	return GenerateDefaultDsn()
+}
+
+// GenerateDefaultDsn generates a DSN using suitable local values: localhost, port 5432 and using the system username as the role and database name.
+func GenerateDefaultDsn() string {
+	user := getDefaultDBName()
+	if user == "" {
+		user = defaultUser
+	}
+	m := map[string]string{
+		"host":    "localhost",
+		"port":    "5432",
+		"user":    user,
+		"dbname":  user,
+		"sslmode": "disable",
+	}
+	return BuildDsn(m)
+}
+
+func getDefaultDBName() string {
+	if user, err := user.Current(); err == nil {
+		return user.Username
+	}
+	return ""
+}
+
 // MigrateSchema migrates a Postgres schema to the latest versioned schema script. Returns an error if migration fails.
 func MigrateSchema(pgdsn, schema, migrationsDir string) error {
 	// only supports Postgres
 	driver := goose.DBDriver{
-		Name:    pgType,
+		Name:    PostgresType,
 		OpenStr: pgdsn,
 		Import:  "github.com/lib/pq",
 		Dialect: &goose.PostgresDialect{},
@@ -182,7 +220,7 @@ func DropSchema(schema string, db *sqlx.DB) error {
 func GetCurrentSchemaVersion(schema string, db *sqlx.DB) (int64, error) {
 	// only supports Postgres
 	driver := goose.DBDriver{
-		Name: pgType,
+		Name: PostgresType,
 		// open str is unused for checking the schema version
 		OpenStr: "",
 		Import:  "github.com/lib/pq",
@@ -206,19 +244,19 @@ func GetCurrentSchemaVersion(schema string, db *sqlx.DB) (int64, error) {
 
 // CreateDsnForRole takes an existing, valid dsn and replaces the user name with the specified role name. If the password is non-empty, sets the password.
 func CreateDsnForRole(existingDsn, role, password string) string {
-	dsnMap := parseDsn(existingDsn)
+	dsnMap := ParseDsn(existingDsn)
 	dsnMap["user"] = role
 	if password != "" {
 		dsnMap["password"] = password
 	}
-	return buildDsn(dsnMap)
+	return BuildDsn(dsnMap)
 }
 
 // On some managed databases, such as RDS, the admin user is not really the actual super user and thus does not have privileges to modify the schema once the ownership is altered. This is required in order to properly install extensions.
 func fixPrivileges(pgdsn, schema, schemaDsn string) error {
-	parsed := parseDsn(pgdsn)
+	parsed := ParseDsn(pgdsn)
 	if adminUser, ok := parsed["user"]; ok {
-		db, err := sqlx.Connect(pgType, schemaDsn)
+		db, err := sqlx.Connect(PostgresType, schemaDsn)
 		if err != nil {
 			return err
 		}
@@ -231,8 +269,8 @@ func fixPrivileges(pgdsn, schema, schemaDsn string) error {
 	return nil
 }
 
-// parseDsn parses a dsn into a map.
-func parseDsn(dsn string) map[string]string {
+// ParseDsn parses a dsn into a map.
+func ParseDsn(dsn string) map[string]string {
 	dsnMap := make(map[string]string)
 	params := strings.Split(dsn, " ")
 	for _, param := range params {
@@ -242,8 +280,8 @@ func parseDsn(dsn string) map[string]string {
 	return dsnMap
 }
 
-// buildDsn builds a dsn from a map.
-func buildDsn(dsnMap map[string]string) string {
+// BuildDsn builds a dsn from a map.
+func BuildDsn(dsnMap map[string]string) string {
 	dsn := ""
 	for param, value := range dsnMap {
 		if dsn != "" {
