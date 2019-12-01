@@ -21,3 +21,5 @@ _testmain.go
 
 *.exe
 *.test
+.projectile
+.dir-locals.el

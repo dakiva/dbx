@@ -1,4 +1,4 @@
-// Copyright 2014 Daniel Akiva
+// Copyright 2019 Daniel Akiva
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -32,15 +32,14 @@ const (
 	extensionsFileName = "_extensions"
 )
 
-// Initializes and migrates a schema, returning a DB object that has the proper search path
-// set to the initialized schema.
+// InitializeDB initializes a connection pool, establishing a connection to the database and migrates a schema, returning a DB object that has the proper search path  set to the schema.
 // Accepts a dsn "user= password= dbname= host= port= sslmode=[disable|require|verify-ca|verify-full] connect-timeout=" The role must have privileges to create a new database schema and install extensions.
 // Schema must be set to a valid schema
 // migrationsDir is the path to the migration scripts. This function uses goose to migrate the
 // schema
 func InitializeDB(pgdsn, schema, schemaPassword, migrationsDir string) (*sqlx.DB, error) {
 	if pgdsn == "" {
-		return nil, errors.New("Postgres dsn must not be empty.")
+		return nil, errors.New("Postgres dsn must not be empty")
 	}
 	db, err := sqlx.Connect(pgType, pgdsn)
 	if err != nil {
@@ -67,7 +66,7 @@ func InitializeDB(pgdsn, schema, schemaPassword, migrationsDir string) (*sqlx.DB
 	return sqlx.Connect(pgType, schemaDsn)
 }
 
-// Initializes and migrates a schema, returning a DB object thathas the proper search path
+// MustInitializeDB calls InitializeDB  returning a DB object that has the proper search path
 // set to the initialized schema. This function will panic on an error.
 func MustInitializeDB(pgdsn, schema, schemaPassword, migrationsDir string) *sqlx.DB {
 	db, err := InitializeDB(pgdsn, schema, schemaPassword, migrationsDir)
@@ -77,7 +76,7 @@ func MustInitializeDB(pgdsn, schema, schemaPassword, migrationsDir string) *sqlx
 	return db
 }
 
-// Migrates a Postgres schema. Returns an error if migration fails.
+// MigrateSchema migrates a Postgres schema to the latest versioned schema script. Returns an error if migration fails.
 func MigrateSchema(pgdsn, schema, migrationsDir string) error {
 	// only supports Postgres
 	driver := goose.DBDriver{
@@ -99,8 +98,7 @@ func MigrateSchema(pgdsn, schema, migrationsDir string) error {
 	return goose.RunMigrations(conf, migrationsDir, targetVersion)
 }
 
-// Attempts to remove all extensions. This function will not halt on an error and will iterate through all extensions.
-// Removal does not remove the extension if it is in use. The first error found is returned.
+// RemoveExtensions attempts to remove all extensions. This function will not halt on an error and will iterate through all extensions. Removal does not remove the extension if it is in use. The first error found is returned.
 func RemoveExtensions(migrationsDir string, db *sqlx.DB) error {
 	extensions, err := getExtensions(migrationsDir)
 	if err != nil {
@@ -116,9 +114,7 @@ func RemoveExtensions(migrationsDir string, db *sqlx.DB) error {
 	return retErr
 }
 
-// Looks for an _extensions file in the migrations dir, loads and attempts to create the extensions
-// with the objects of the extension stored within the newly created schema.
-// This function is a noop if the file does not exist.
+// InstallExtensions looks for an _extensions file in the migrations dir, loads and attempts to create the extensions with the objects of the extension stored within the newly created schema. This function is a noop if the file does not exist.
 func InstallExtensions(schema, migrationsDir string, db *sqlx.DB) error {
 	extensions, err := getExtensions(migrationsDir)
 	if err != nil {
@@ -133,9 +129,7 @@ func InstallExtensions(schema, migrationsDir string, db *sqlx.DB) error {
 	return nil
 }
 
-// Creates a new Postgres schema along with a specific role as the owner if neither exist.
-// Returns an error if schema creation fails. If the schema and/or role already exists, this
-// function ignores and continues without creation.
+// EnsureSchema creates a new Postgres schema along with a specific role as the owner if neither exist. Returns an error if schema creation fails. This call is idempotent. If the schema and/or role already exists, this function ignores creation and continues configuring the schema and role.
 func EnsureSchema(schema, password string, db *sqlx.DB) error {
 	if schema == "" {
 		return errors.New("Empty schema name specified")
@@ -168,7 +162,7 @@ func EnsureSchema(schema, password string, db *sqlx.DB) error {
 	return nil
 }
 
-// Drops a Postgres schema along with the specific role owner. Exercise caution when using this method.
+// DropSchema drops a Postgres schema along with the specific role owner. Exercise caution when using this method, as its impact is irreversible.
 func DropSchema(schema string, db *sqlx.DB) error {
 	if schema == "" {
 		return errors.New("Empty schema name specified")
@@ -184,9 +178,7 @@ func DropSchema(schema string, db *sqlx.DB) error {
 	return nil
 }
 
-// Returns the current schema version, or an error if the version could not be determined.
-// This function will create the migrations versions table if the migrations table does not
-// exist.
+// GetCurrentSchemaVersion returns the current schema version, or an error if the version could not be determined. This function will create the migrations versions table if the migrations table does not exist.
 func GetCurrentSchemaVersion(schema string, db *sqlx.DB) (int64, error) {
 	// only supports Postgres
 	driver := goose.DBDriver{
@@ -212,8 +204,7 @@ func GetCurrentSchemaVersion(schema string, db *sqlx.DB) (int64, error) {
 	return goose.EnsureDBVersion(conf, db.DB)
 }
 
-// Takes an existing, valid dsn and replaces the user name with the specified role name.
-// If the password is non-empty, sets the password.
+// CreateDsnForRole takes an existing, valid dsn and replaces the user name with the specified role name. If the password is non-empty, sets the password.
 func CreateDsnForRole(existingDsn, role, password string) string {
 	dsnMap := parseDsn(existingDsn)
 	dsnMap["user"] = role
@@ -223,9 +214,7 @@ func CreateDsnForRole(existingDsn, role, password string) string {
 	return buildDsn(dsnMap)
 }
 
-// On some managed databases, such as RDS, the admin user is not really the actual super user and thus
-// does not have privileges to modify the schema once the ownership is altered. This is required in order
-// to properly install extensions.
+// On some managed databases, such as RDS, the admin user is not really the actual super user and thus does not have privileges to modify the schema once the ownership is altered. This is required in order to properly install extensions.
 func fixPrivileges(pgdsn, schema, schemaDsn string) error {
 	parsed := parseDsn(pgdsn)
 	if adminUser, ok := parsed["user"]; ok {
@@ -242,7 +231,7 @@ func fixPrivileges(pgdsn, schema, schemaDsn string) error {
 	return nil
 }
 
-// Parses a dsn into a map
+// parseDsn parses a dsn into a map.
 func parseDsn(dsn string) map[string]string {
 	dsnMap := make(map[string]string)
 	params := strings.Split(dsn, " ")
@@ -253,7 +242,7 @@ func parseDsn(dsn string) map[string]string {
 	return dsnMap
 }
 
-// Builds a dsn from a map
+// buildDsn builds a dsn from a map.
 func buildDsn(dsnMap map[string]string) string {
 	dsn := ""
 	for param, value := range dsnMap {
@@ -265,8 +254,7 @@ func buildDsn(dsnMap map[string]string) string {
 	return dsn
 }
 
-// returns all extensions found in the _extensions file in the migrations directory, or an error
-// If the _extensions file does not exist, no error is returned.
+// getExtensions returns all extensions found in the _extensions file in the migrations directory, or an error. If the _extensions file does not exist, no error is returned.
 func getExtensions(migrationsDir string) ([]string, error) {
 	contents, err := ioutil.ReadFile(filepath.Join(migrationsDir, extensionsFileName))
 	if err != nil {

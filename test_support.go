@@ -1,4 +1,4 @@
-// Copyright 2014 Daniel Akiva
+// Copyright 2019 Daniel Akiva
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,27 +17,58 @@ package dbx
 import (
 	"fmt"
 	"os"
+	"os/user"
 	"time"
 
 	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
 )
 
 const (
 	postgresDsn  = "POSTGRES_DSN"
 	rolePassword = "password"
+	defaultUser  = "postgres"
 )
 
-// Initializes and migrates a test schema, returning a DB object that has the proper search path
-// set to the initialized schema.
-// Accepts a dsn "user= password= dbname= host= port= sslmode=[disable|require|verify-ca|verify-full] connect-timeout=
-func InitializeTestDB(schemaName, migrationsDir string) (*sqlx.DB, error) {
+// GetTestDsn returns a datasource name suitable for use during testing by first looking
+// for a dsn in an environment variable POSTGRES_DSN. If the environment variable is not
+// set, generates a DSN using suitable local values.
+func GetTestDsn() string {
 	pgdsn := os.Getenv(postgresDsn)
-	return InitializeDB(pgdsn, schemaName, rolePassword, migrationsDir)
+	if pgdsn == "" {
+		pgdsn = GenerateDefaultTestDsn()
+	}
+	return pgdsn
 }
 
-// Initializes and migrates a test schema, returning a DB object that has the proper search path
-// set to the initialized schema. This function will panic on an error.
+// GenerateDefaultTestDsn generates a DSN using suitable local values: localhost, port 5432 and using the system username as the role and database name.
+func GenerateDefaultTestDsn() string {
+	user := getDefaultDBName()
+	if user == "" {
+		user = defaultUser
+	}
+	m := map[string]string{
+		"host":     "localhost",
+		"port":     "5432",
+		"user":     user,
+		"password": "",
+		"dbname":   user,
+	}
+	return buildDsn(m)
+}
+
+func getDefaultDBName() string {
+	if user, err := user.Current(); err == nil {
+		return user.Name
+	}
+	return ""
+}
+
+// InitializeTestDB initializes and migrates a test schema, returning a DB object that has the proper search path set to the initialized schema. Requires an environment variable containing the dsn in the form "user= password= dbname= host= port= sslmode=[disable|require|verify-ca|verify-full] connect-timeout=
+func InitializeTestDB(schemaName, migrationsDir string) (*sqlx.DB, error) {
+	return InitializeDB(GetTestDsn(), schemaName, rolePassword, migrationsDir)
+}
+
+// MustInitializeTestDB calls InitializeTestDB panics on an error.
 func MustInitializeTestDB(schemaName, migrationsDir string) *sqlx.DB {
 	db, err := InitializeTestDB(schemaName, migrationsDir)
 	if err != nil {
@@ -46,17 +77,16 @@ func MustInitializeTestDB(schemaName, migrationsDir string) *sqlx.DB {
 	return db
 }
 
-// Drops the test schema, returning an error if dropping the schema fails.
+// TearDownTestDB drops the test schema, returning an error if dropping the schema fails.
 func TearDownTestDB(schemaName string) error {
-	pgdsn := os.Getenv(postgresDsn)
-	db, err := sqlx.Connect(pgType, pgdsn)
+	db, err := sqlx.Connect(pgType, GetTestDsn())
 	if err != nil {
 		return err
 	}
 	return DropSchema(schemaName, db)
 }
 
-// Generates a unique schema name suitable for use during testing.
+// GenerateSchemaName generates a unique schema name suitable for use during testing.
 func GenerateSchemaName(prefix string) string {
 	return fmt.Sprintf("%v%v", prefix, time.Now().Unix())
 }

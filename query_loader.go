@@ -1,4 +1,4 @@
-// Copyright 2014 Daniel Akiva
+// Copyright 2019 Daniel Akiva
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,17 +20,24 @@ import (
 	"io/ioutil"
 )
 
+// QueryValue is a structure representing the unmarshalled json query object.
+type QueryValue struct {
+	Query       string `json:"query"`
+	Description string `json:"description"`
+}
+
+// QueryMap holds the entire structure representing the unmarshalled set of names queries.
 type QueryMap map[string]QueryValue
 
-// Finds and returns the query string for the given identifier. Panics if a query was not found.
-func (this QueryMap) Q(name string) string {
-	if value, ok := this[name]; ok {
+// Q finds and returns the query string for the given identifier, panic'ing if a query was not found.
+func (q QueryMap) Q(name string) string {
+	if value, ok := q[name]; ok {
 		return value.Query
 	}
 	panic(fmt.Sprintf("Could not find a query for name: %v", name))
 }
 
-// Loads named queries from explicit file locations, returning an error if a file could not be loaded or parsed as JSON. The JSON format is simply { "queryName", { "query" : "SELECT * FROM...", "description": "A select statement" }. If two queries have the same name either in the same file, or in disparate files, the last query loaded wins, overwriting the previously loaded query.
+// LoadNamedQueries loads named queries from explicit file locations, returning an error if a file could not be loaded or parsed as JSON. The JSON format is simply { "queryName", { "query" : "SELECT * FROM...", "description": "A select statement" }. If two queries have the same name either in the same file, or in disparate files, the last query loaded wins, overwriting the previously loaded query.
 func LoadNamedQueries(fileLocations ...string) (QueryMap, error) {
 	queryMap := make(QueryMap)
 	for _, location := range fileLocations {
@@ -46,17 +53,11 @@ func LoadNamedQueries(fileLocations ...string) (QueryMap, error) {
 	return queryMap, nil
 }
 
-// Variant of LoadNamedQueries that panics if an error occurs while loading the queries.
+// MustLoadNamedQueries calls LoadNamedQueries and  panics if an error occurs while loading the queries.
 func MustLoadNamedQueries(fileLocations ...string) QueryMap {
 	queryMap, err := LoadNamedQueries(fileLocations...)
 	if err != nil {
 		panic(fmt.Sprintf("Error loading named queries: %v", err))
 	}
 	return queryMap
-}
-
-// Used for unmarshalling the queries json object.
-type QueryValue struct {
-	Query       string
-	Description string
 }

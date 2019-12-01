@@ -1,4 +1,4 @@
-// Copyright 2014 Daniel Akiva
+// Copyright 2019 Daniel Akiva
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// A protocol for providing data from an underlying database. The lack of exposure of transaction semantics here is deliberate as transactions can be adapted to this protocol. In other words, a DB object or Tx object can conform to this interface, provided that sqlx is used for named query support.
+// DBContext represents a protocol for providing data from an underlying database. The lack of exposure of transaction semantics here is deliberate as transactions can be adapted to this protocol. In other words, a DB object or Tx object can conform to this interface, provided that sqlx is used for named query support.
 type DBContext interface {
 	// Execute a query that contains named query parameters, returning result metadata or an error.
 	NamedExec(query string, arg interface{}) (sql.Result, error)

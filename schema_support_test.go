@@ -1,4 +1,4 @@
-// Copyright 2014 Daniel Akiva
+// Copyright 2019 Daniel Akiva
 
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -189,12 +189,12 @@ func TestRemoveExtensionsWithNoFile(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-var RUN_EXTENSIONS_TEST = false
+var RunExtensionsTest = false
 
 func TestExtensions(t *testing.T) {
 	// this test actually creates the pg_trgm extension and drops it which could interfere
 	// with local databases that may already have the extension created.
-	if !RUN_EXTENSIONS_TEST {
+	if !RunExtensionsTest {
 		return
 	}
 	// given
