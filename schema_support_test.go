@@ -16,7 +16,6 @@ package dbx
 
 import (
 	"fmt"
-	"os"
 	"testing"
 	"time"
 
@@ -27,7 +26,7 @@ import (
 
 func TestInitializeDB(t *testing.T) {
 	// given
-	pgdsn := os.Getenv(postgresDsn)
+	pgdsn := GetTestDsn()
 	schema := fmt.Sprintf("initschema%v", time.Now().Unix())
 	password := "pwd"
 
@@ -46,7 +45,7 @@ func TestInitializeDB(t *testing.T) {
 
 func TestSchemaCreation(t *testing.T) {
 	// given
-	pgdsn := os.Getenv(postgresDsn)
+	pgdsn := GetTestDsn()
 	password := "pwd"
 	// create the schema
 	schema := fmt.Sprintf("schema%v", time.Now().Unix())
@@ -129,7 +128,7 @@ func TestCreateDsnForRole(t *testing.T) {
 
 func TestSchemaMigration(t *testing.T) {
 	// given
-	pgdsn := os.Getenv(postgresDsn)
+	pgdsn := GetTestDsn()
 	password := "pwd"
 	// create the schema
 	schema := fmt.Sprintf("migrateschema%v", time.Now().Unix())
@@ -162,7 +161,7 @@ func TestSchemaMigration(t *testing.T) {
 func TestInstallExtensionsWithNoFile(t *testing.T) {
 	// given
 	migrationsDir := "db/extNoFile"
-	pgdsn := os.Getenv(postgresDsn)
+	pgdsn := GetTestDsn()
 	db, err := sqlx.Connect(pgType, pgdsn)
 	assert.NoError(t, err)
 	defer db.Close()
@@ -177,7 +176,7 @@ func TestInstallExtensionsWithNoFile(t *testing.T) {
 func TestRemoveExtensionsWithNoFile(t *testing.T) {
 	// given
 	migrationsDir := "db/extNoFile"
-	pgdsn := os.Getenv(postgresDsn)
+	pgdsn := GetTestDsn()
 	db, err := sqlx.Connect(pgType, pgdsn)
 	assert.NoError(t, err)
 	defer db.Close()
@@ -199,7 +198,7 @@ func TestExtensions(t *testing.T) {
 	}
 	// given
 	migrationsDir := "db/extGoodFile"
-	pgdsn := os.Getenv(postgresDsn)
+	pgdsn := GetTestDsn()
 	db, err := sqlx.Connect(pgType, pgdsn)
 	assert.NoError(t, err)
 	defer db.Close()

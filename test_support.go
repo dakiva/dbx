@@ -47,30 +47,30 @@ func GenerateDefaultTestDsn() string {
 		user = defaultUser
 	}
 	m := map[string]string{
-		"host":     "localhost",
-		"port":     "5432",
-		"user":     user,
-		"password": "",
-		"dbname":   user,
+		"host":    "localhost",
+		"port":    "5432",
+		"user":    user,
+		"dbname":  user,
+		"sslmode": "disable",
 	}
 	return buildDsn(m)
 }
 
 func getDefaultDBName() string {
 	if user, err := user.Current(); err == nil {
-		return user.Name
+		return user.Username
 	}
 	return ""
 }
 
-// InitializeTestDB initializes and migrates a test schema, returning a DB object that has the proper search path set to the initialized schema. Requires an environment variable containing the dsn in the form "user= password= dbname= host= port= sslmode=[disable|require|verify-ca|verify-full] connect-timeout=
-func InitializeTestDB(schemaName, migrationsDir string) (*sqlx.DB, error) {
-	return InitializeDB(GetTestDsn(), schemaName, rolePassword, migrationsDir)
+// InitializeTestDB initializes and migrates a test schema, returning a DB object that has the proper search path set to the initialized schema. Requires a dsn in the form "user= password= dbname= host= port= sslmode=[disable|require|verify-ca|verify-full] connect-timeout=
+func InitializeTestDB(dsn, schemaName, migrationsDir string) (*sqlx.DB, error) {
+	return InitializeDB(dsn, schemaName, rolePassword, migrationsDir)
 }
 
 // MustInitializeTestDB calls InitializeTestDB panics on an error.
-func MustInitializeTestDB(schemaName, migrationsDir string) *sqlx.DB {
-	db, err := InitializeTestDB(schemaName, migrationsDir)
+func MustInitializeTestDB(dsn, schemaName, migrationsDir string) *sqlx.DB {
+	db, err := InitializeTestDB(dsn, schemaName, migrationsDir)
 	if err != nil {
 		panic(fmt.Sprintf("Error initializing test database: %v", err))
 	}
@@ -78,8 +78,8 @@ func MustInitializeTestDB(schemaName, migrationsDir string) *sqlx.DB {
 }
 
 // TearDownTestDB drops the test schema, returning an error if dropping the schema fails.
-func TearDownTestDB(schemaName string) error {
-	db, err := sqlx.Connect(pgType, GetTestDsn())
+func TearDownTestDB(dsn, schemaName string) error {
+	db, err := sqlx.Connect(pgType, dsn)
 	if err != nil {
 		return err
 	}
