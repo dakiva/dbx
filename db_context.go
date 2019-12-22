@@ -22,10 +22,10 @@ import (
 
 // DBContext represents a protocol for providing data from an underlying database. The lack of exposure of transaction semantics here is deliberate as transactions can be adapted to this protocol. In other words, a DB object or Tx object can conform to this interface, provided that sqlx is used for named query support.
 type DBContext interface {
-	// Execute a query that contains named query parameters, returning result metadata or an error.
+	// NamedExec executes a query that contains named query parameters, returning result metadata or an error.
 	NamedExec(query string, arg interface{}) (sql.Result, error)
-	// Execute a query that contains named parameters. Retuns rows returned by the database or an error.
+	// NamedQuery executes a query that contains named parameters. Retuns rows returned by the database or an error.
 	NamedQuery(query string, arg interface{}) (*sqlx.Rows, error)
-	// Prepares a query with named parameters. Returns a prepared statement or an error.
+	// PrepareNamed prepares a query with named parameters. Returns a prepared statement or an error.
 	PrepareNamed(query string) (*sqlx.NamedStmt, error)
 }

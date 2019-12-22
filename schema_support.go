@@ -242,6 +242,18 @@ func GetCurrentSchemaVersion(schema string, db *sqlx.DB) (int64, error) {
 	return goose.EnsureDBVersion(conf, db.DB)
 }
 
+// MustCheckSchemaVersion verifies the schema is of the expected version, panicing if the version
+// is not a match or if a match could not be determined.
+func MustCheckSchemaVersion(schema string, expectedSchemaVersion int64, db *sqlx.DB) {
+	version, err := GetCurrentSchemaVersion(schema, db)
+	if err != nil {
+		panic("could not retrieve schema version information from the database")
+	}
+	if version != expectedSchemaVersion {
+		panic(fmt.Sprintf("schema version mismatch: %d != %d", version, expectedSchemaVersion))
+	}
+}
+
 // CreateDsnForRole takes an existing, valid dsn and replaces the user name with the specified role name. If the password is non-empty, sets the password.
 func CreateDsnForRole(existingDsn, role, password string) string {
 	dsnMap := ParseDsn(existingDsn)
